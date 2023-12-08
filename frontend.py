@@ -4,15 +4,13 @@ import pickle
 import numpy as np
 import pandas as pd
 
-import warnings
-warnings.filterwarnings("ignore")
 def loadModel():
-    return pickle.load(open('SMOTE_Voting.pkl', 'rb'))
+    return pickle.load(open('SMOTE_XGBoost.pkl', 'rb'))
 
 def displayHeader():
     components.html(
         """
-        <h1 style="color: white; font-size: 24px; text-align: center; font-family: sans-serif;">Predicting students' dropout and academic success</h1>
+        <h1 style="color: #adb5bd; font-size: 24px; text-align: center; font-family: sans-serif;">Predicting students' dropout and academic success</h1>
         """,
         height=50,
     )
@@ -27,12 +25,20 @@ def getUserInput():
     prevQualGrade = st.text_input("Previous Qualification (Grade)")
 
     if prevQualGrade != '':
-        prevQualGrade = float(prevQualGrade)
+        try:
+            prevQualGrade = float(prevQualGrade)
+        except:
+            st.error("Enter a valid number!")
+            prevQualGrade = '' 
 
     admissionGrade = st.text_input("Admission Grade")
 
     if admissionGrade != '':
-        admissionGrade = float(admissionGrade)
+        try:
+            admissionGrade = float(admissionGrade)
+        except:
+            st.error("Enter a valid number!")
+            admissionGrade = '' 
 
     displaced = st.slider("Displaced", min_value=0, max_value=1, value=0)
     debtor = st.slider("Debtor", min_value=0, max_value=1, value=0)
@@ -51,17 +57,29 @@ def getUserInput():
     gdp = st.text_input("GDP")
 
     if gdp != '':
-        gdp = float(gdp)
+        try:
+            gdp = float(gdp)
+        except:
+            st.error("Enter a valid number!")
+            gdp = '' 
 
     curricularFirstSemGrade = st.text_input("Curricular Units 1st semester (grade)")
 
     if curricularFirstSemGrade != '':
-        curricularFirstSemGrade = float(curricularFirstSemGrade)
+        try:
+            curricularFirstSemGrade = float(curricularFirstSemGrade)
+        except:
+            st.error("Enter a valid number!")
+            curricularFirstSemGrade = '' 
 
     curricularSecondSemGrade = st.text_input("Curricular Units 2nd semester (grade)")
 
     if curricularSecondSemGrade != '':
-        curricularSecondSemGrade = float(curricularSecondSemGrade)
+        try:
+            curricularSecondSemGrade = float(curricularSecondSemGrade)
+        except:
+            st.error("Enter a valid number!")
+            curricularSecondSemGrade = ''
 
     return {
     'maritalStatus': maritalStatus,
@@ -291,7 +309,7 @@ def displayKeySidebar():
     st.sidebar.text('GDP (between -5 and 5)')
 
 
-def predictResult(user_input, model, scaler, label_encoder):
+def predictResult(user_input, model, preprocessor):
 
     input_array = np.array([user_input[key] for key in user_input])
 
@@ -323,23 +341,11 @@ def predictResult(user_input, model, scaler, label_encoder):
         'GDP': input_array[24],
     }
 
-    #st.write(data)
-
     df = pd.DataFrame(data, index=[0])
 
-   # st.write(df)
-    
-    #input_array = input_array.reshape(1, -1)
-
-    #st.write(input_array)
-
-    preprocessor = pickle.load(open('preprocessor.pkl', 'rb'))
-
-
-    #trying to pass this into the model doesn't work as expected
     input_array = preprocessor.transform(df)
 
-    st.write(input_array.shape)
+    #st.write(input_array)
 
     prediction = model.predict(input_array)
 
@@ -349,29 +355,31 @@ def displayResult(prediction):
     if prediction == 0:
         components.html(
             """
-            <h1 style="color: black; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely going to be a dropout</h1>
+            <h1 style="color: #adb5bd; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely going to be a dropout</h1>
             """,
             height=50,
         )
     elif prediction == 1:
         components.html(
             """
-            <h1 style="color: black; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely enrolled</h1>
+            <h1 style="color: #adb5bd; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely enrolled</h1>
             """,
             height=50,
         )
     else:
         components.html(
             """
-            <h1 style="color: black; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely going to be a graduate</h1>
+            <h1 style="color: ; font-size: 28px; text-align: center; font-weight: 600; font-family: sans-serif">The student is most likely going to be a graduate</h1>
             """,
             height=50,
         )
 
 def main():
-    loaded_model = loadModel()
+    loadedModel = loadModel()
     displayHeader()
-    user_input = getUserInput()
+    userInput = getUserInput()
+
+    # centering the predict button
     st.markdown(
     """<style>
     div[data-testid="stButton"] {
@@ -385,15 +393,12 @@ def main():
     unsafe_allow_html=True,
     )
     if st.button('Predict'):
-        if any(value == '' for value in user_input.values()):
+        if any(value == '' for value in userInput.values()):
             st.error('Please fill in all the required fields')
         else:
-            scaler = pickle.load(open('preprocessor.pkl', 'rb'))
-            label_encoder = pickle.load(open('label_encoder.pkl', 'rb'))
-
-            prediction = predictResult(user_input, loaded_model, scaler, label_encoder)
+            preprocessor = pickle.load(open('preprocessor.pkl', 'rb'))
+            prediction = predictResult(userInput, loadedModel, preprocessor)
             displayResult(prediction)
-
     displayKeySidebar()
 
 if __name__ == "__main__":
